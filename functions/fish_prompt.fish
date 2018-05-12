@@ -3,7 +3,7 @@ function fish_prompt
     set -l host_color (set_color $fish_color_host ^/dev/null; or set_color green)
     set -l directory_color (set_color $fish_color_cwd ^/dev/null; or set_color blue)
     
-    set -l changed_color (set_color red)
+    set -l modified_color (set_color red)
     set -l staged_color (set_color green)
     set -l untracked_color (set_color -o blue)
     set -l revision_color (set_color -o black)
@@ -60,7 +60,7 @@ function fish_prompt
         set -l vcs_color $directory_color
         eval (env LANG=C git status --porcelain 2>/dev/null | sed -n '
              s,^[MARC]. .*,set vcs_color $staged_color;,p
-             s,^.[MAU] .*,set vcs_color $changed_color;,p
+             s,^.[MAU] .*,set vcs_color $modified_color;,p
              s,^?? .*,set vcs_color $untracked_color;,p')
 
         set -l freshness "="
@@ -71,6 +71,28 @@ function fish_prompt
              s/^\(# \)*Your branch and.*have diverged.*/set freshness $diverged;/p')
         
         set vcs_info $vcs_color "|" $branch $normal_color $freshness $revision_color $revision $directory_color
+    else
+        set -l hg_root (hg root 2>/dev/null)
+        if test -n "$hg_root"
+            set -l revision (hg id --id)
+            set -l freshness "="  # not supported by hg
+            set -l branch (hg branch 2>/dev/null)
+            if test $branch = "default"
+                 set branch "T"
+            end
+
+            set -l vcs_color $directory_color
+            eval (hg status 2>/dev/null | sed -n '
+                s/^[M!] .*/set vcs_color $modified_color;/p
+                s/^[AR] .*/set vcs_color $staged_color;/p
+                s/^? .*/set vcs_color $untracked_color;/p')
+
+            if test -f $hg_root/.hg/bookmarks.current
+               set branch $branch "/" (cat "$hg_root/.hg/bookmarks.current")
+            end
+
+            set vcs_info $vcs_color "|" $branch $normal_color $freshness $revision_color $revision $directory_color
+        end
     end
 
     echo -n -s $host_color $hostname ":" $directory_color $cwd $vcs_info $prompt_char $normal_color
