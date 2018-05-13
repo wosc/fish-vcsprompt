@@ -47,7 +47,7 @@ function fish_prompt
         else if test -f "$git_dir/BISECT_LOG"
              set operation "bisect"
         end
-        
+
         if not grep -q "^ref:" "$git_dir/HEAD" 2>/dev/null
            set branch "<detached:" (git name-rev --name-only HEAD 2>/dev/null)
         else if test -n $operation
@@ -69,31 +69,44 @@ function fish_prompt
              s/^\(# \)*Your branch is ahead of.*/set freshness $ahead;/p
              s/^\(# \)*Your branch is behind.*/set freshness $behind;/p
              s/^\(# \)*Your branch and.*have diverged.*/set freshness $diverged;/p')
-        
+
         set vcs_info $vcs_color "|" $branch $normal_color $freshness $revision_color $revision $directory_color
-    else
-        set -l hg_root (hg root 2>/dev/null)
-        if test -n "$hg_root"
-            set -l revision (hg id --id)
-            set -l freshness "="  # not supported by hg
-            set -l branch (hg branch 2>/dev/null)
-            if test $branch = "default"
-                 set branch "T"
-            end
-
-            set -l vcs_color $directory_color
-            eval (hg status 2>/dev/null | sed -n '
-                s/^[M!] .*/set vcs_color $modified_color;/p
-                s/^[AR] .*/set vcs_color $staged_color;/p
-                s/^? .*/set vcs_color $untracked_color;/p')
-
-            if test -f $hg_root/.hg/bookmarks.current
-               set branch $branch "/" (cat "$hg_root/.hg/bookmarks.current")
-            end
-
-            set vcs_info $vcs_color "|" $branch $normal_color $freshness $revision_color $revision $directory_color
+    else if find_hg_root
+        # http://patrickoscity.de/blog/building-a-fast-mercurial-prompt
+        set -l revision (hexdump -n 4 -e '1/1 "%02x"' "$hg_root/dirstate" | cut -c -7)
+        set -l freshness "="  # not supported by hg
+        set -l branch (cat $hg_root/branch 2>/dev/null; or echo "T")
+        if test $branch = "default"
+             set branch "T"
         end
+        if set -l bookmark (cat $hg_root/bookmarks.current 2>/dev/null)
+            set branch "$branch/$bookmark"
+        end
+
+        set -l vcs_color $directory_color
+        eval (env HGRCPATH="" hg status --color never --pager never 2>/dev/null | sed -n '
+            s/^[M!] .*/set vcs_color $modified_color;/p
+            s/^[AR] .*/set vcs_color $staged_color;/p
+            s/^? .*/set vcs_color $untracked_color;/p')
+
+        set vcs_info $vcs_color "|" $branch $normal_color $freshness $revision_color $revision $directory_color
     end
 
     echo -n -s $host_color $hostname ":" $directory_color $cwd $vcs_info $prompt_char $normal_color
+end
+
+
+# https://github.com/fish-shell/fish-shell/blob/master/share/functions/__fish_hg_prompt.fish
+function find_hg_root
+    set -e hg_root
+    set -l dir $PWD
+    while test $dir != "/"
+        if test -f $dir'/.hg/dirstate'
+            set -g hg_root $dir"/.hg"
+            return 0
+        end
+        # Go up one directory
+        set dir (string replace -r '[^/]*/?$' '' $dir)
+    end
+    return 1
 end
