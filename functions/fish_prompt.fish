@@ -1,7 +1,7 @@
 function fish_prompt
     set -l normal_color (set_color normal)
-    set -l host_color (set_color $fish_color_host ^/dev/null; or set_color green)
-    set -l directory_color (set_color $fish_color_cwd ^/dev/null; or set_color blue)
+    set -l host_color (set_color $fish_color_host; or set_color green)
+    set -l directory_color (set_color $fish_color_cwd; or set_color blue)
 
     set -l modified_color (set_color red)
     set -l staged_color (set_color green)
