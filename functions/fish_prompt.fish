@@ -8,7 +8,7 @@ function fish_prompt
     set -l untracked_color (set_color -o blue)
     set -l revision_color (set_color -o black)
 
-    set -l hostname (hostname)
+    set -l myhostname (hostname)
     set -l cwd (basename (prompt_pwd))
     set -l prompt_char ">"
 
@@ -92,7 +92,7 @@ function fish_prompt
         set vcs_info $vcs_color "|" $branch $normal_color $freshness $revision_color $revision $directory_color
     end
 
-    echo -n -s $host_color $hostname ":" $directory_color $cwd $vcs_info $prompt_char $normal_color
+    echo -n -s $host_color $myhostname ":" $directory_color $cwd $vcs_info $prompt_char $normal_color
 end
 
 
