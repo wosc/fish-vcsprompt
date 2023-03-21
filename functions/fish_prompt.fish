@@ -22,7 +22,7 @@ function fish_prompt
         set -l revision (string sub --length 7 (git rev-parse HEAD 2>/dev/null))
 
         set -l branch (git_branch_name)
-        if test $branch = "master"
+        if test $branch = "master" -o $branch = "main"
              set branch "T"
         end
 
